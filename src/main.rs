@@ -40,7 +40,7 @@ fn main() {
             },
         },
     ];
-    let mut sm = fsm::Fsm::create(&S_1, &HashSet::from([S_1, S_2, S_3]), &jumps).unwrap();
+    let mut sm = fsm::Fsm::create(S_1, &HashSet::from([S_1, S_2, S_3]), &jumps).unwrap();
     let mut s = sm.get_state();
     println!("{s}");
 
