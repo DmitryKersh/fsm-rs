@@ -11,9 +11,9 @@ pub struct Jump<'a> {
     pub reaction: Reaction<'a>,
 }
 
-pub struct Fsm {
+pub struct Fsm<'a> {
     current_state: usize,
-    names: Vec<String>,
+    names: Vec<&'a str>,
     jumps: Vec<HashMap<String, ReactionInternal>>,
 }
 
@@ -22,14 +22,13 @@ struct ReactionInternal {
     target_state_id: usize,
 }
 
-impl Fsm {
-    pub fn create<'a, 'b>(
+impl<'a> Fsm<'a> {
+    pub fn create(
         init_state: &str,
-        states: &HashSet<&str>,
+        states: &HashSet<&'a str>,
         jumps: impl IntoIterator<Item = &'a Jump<'a>>,
-    ) -> Result<Fsm, &'a str> {
+    ) -> Result<Self, &'a str> {
         let init_state_idx_opt = states.iter().position(|s| *s == init_state);
-        let names: Vec<String> = states.iter().map(|s| s.to_string()).collect();
 
         let Some(init_state_idx_opt) = init_state_idx_opt else {
             return Err("Initial state is not present among states");
@@ -41,11 +40,11 @@ impl Fsm {
         }
 
         for j in jumps {
-            let idx_src = names.iter().position(|s| *s == j.state_name);
+            let idx_src = states.iter().position(|s| *s == j.state_name);
             let Some(idx_src) = idx_src else {
                 return Err("Source state is not present among states");
             };
-            let idx_target = names
+            let idx_target = states
                 .iter()
                 .position(|s| *s == j.reaction.target_state_name);
             let Some(idx_target) = idx_target else {
@@ -61,13 +60,13 @@ impl Fsm {
         }
         Ok(Fsm {
             current_state: init_state_idx_opt,
-            names,
+            names: states.iter().copied().collect(),
             jumps: jumps_processed,
         })
     }
 
     pub fn get_state(&self) -> &str {
-        self.names[self.current_state].as_str()
+        self.names[self.current_state]
     }
 
     pub fn input(&mut self, input_str: &str) -> Result<&str, String> {
