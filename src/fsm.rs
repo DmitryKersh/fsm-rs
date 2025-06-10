@@ -23,10 +23,10 @@ struct ReactionInternal {
 }
 
 impl Fsm {
-    pub fn create<'a>(
+    pub fn create<'a, 'b>(
         init_state: &str,
         states: &HashSet<&str>,
-        jumps: &Vec<Jump>,
+        jumps: impl IntoIterator<Item = &'a Jump<'a>>,
     ) -> Result<Fsm, &'a str> {
         let init_state_idx_opt = states.iter().position(|s| *s == init_state);
         let names: Vec<String> = states.iter().map(|s| s.to_string()).collect();
