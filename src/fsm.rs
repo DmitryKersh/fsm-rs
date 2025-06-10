@@ -23,55 +23,63 @@ struct ReactionInternal {
 }
 
 impl Fsm {
-    pub fn create<'a>(init_state: &str, states: &HashSet<&str>, jumps: &Vec<Jump>) -> Result<Fsm, &'a str> {
+    pub fn create<'a>(
+        init_state: &str,
+        states: &HashSet<&str>,
+        jumps: &Vec<Jump>,
+    ) -> Result<Fsm, &'a str> {
         let init_state_idx_opt = states.iter().position(|s| *s == init_state);
         let names: Vec<String> = states.iter().map(|s| s.to_string()).collect();
 
-        if init_state_idx_opt.is_none() {
+        let Some(init_state_idx_opt) = init_state_idx_opt else {
             return Err("Initial state is not present among states");
-        }
+        };
 
         let mut jumps_processed: Vec<HashMap<String, ReactionInternal>> = Vec::new();
         for s in states {
             jumps_processed.push(HashMap::new());
         }
-        let mut idx_src: Option<usize>;
-        let mut idx_target: Option<usize>;
-        
+
         for j in jumps {
-            idx_src = names.iter().position(|s| *s == j.state_name);
-            if idx_src.is_none() {
+            let idx_src = names.iter().position(|s| *s == j.state_name);
+            let Some(idx_src) = idx_src else {
                 return Err("Source state is not present among states");
-            }
-            idx_target = names.iter().position(|s| *s == j.reaction.target_state_name);
-            if idx_target.is_none() {
+            };
+            let idx_target = names
+                .iter()
+                .position(|s| *s == j.reaction.target_state_name);
+            let Some(idx_target) = idx_target else {
                 return Err("Target state is not present among states");
-            }
-            jumps_processed[idx_src.unwrap()].insert(
-                String::from(j.input), 
+            };
+            jumps_processed[idx_src].insert(
+                String::from(j.input),
                 ReactionInternal {
-                    output: String::from(j.reaction.output), 
-                    target_state_id: idx_target.unwrap()
-                }
+                    output: String::from(j.reaction.output),
+                    target_state_id: idx_target,
+                },
             );
         }
         Ok(Fsm {
-            current_state: init_state_idx_opt.unwrap(),
+            current_state: init_state_idx_opt,
             names,
-            jumps: jumps_processed
+            jumps: jumps_processed,
         })
     }
-    
-    pub fn get_state(&self) -> & str {
+
+    pub fn get_state(&self) -> &str {
         self.names[self.current_state].as_str()
     }
-    
+
     pub fn input(&mut self, input_str: &str) -> Result<&str, String> {
         let reaction = &self.jumps[self.current_state].get(input_str);
-        if reaction.is_some() { 
-            self.current_state = reaction.unwrap().target_state_id;
-            return Ok(reaction.unwrap().output.as_str());
+        if let Some(reaction) = reaction {
+            self.current_state = reaction.target_state_id;
+            return Ok(reaction.output.as_str());
         }
-        Err(format!("No reaction found for state {} and input {}", self.current_state, input_str))
+        Err(format!(
+            "No reaction found for state {} and input {}",
+            self.current_state, input_str
+        ))
     }
 }
+
